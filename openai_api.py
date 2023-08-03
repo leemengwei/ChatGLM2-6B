@@ -104,7 +104,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
 
     prev_messages = request.messages[:-1]
     if len(prev_messages) > 0 and prev_messages[0].role == "system":
-        query = prev_messages.pop(0).content + query
+        query = prev_messages.pop(0).content + '\n' + query
 
     history = []
     if len(prev_messages) % 2 == 0:

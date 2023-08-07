@@ -93,10 +93,11 @@ async def list_models():
     model_card = ModelCard(id="gpt-3.5-turbo")
     return ModelList(data=[model_card])
 
-
+epsilon=1e-9
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
 async def create_chat_completion(request: ChatCompletionRequest):
     global model, tokenizer
+    request.temperature = min(request.temperature + epsilon, 1)
 
     if request.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="Invalid request")

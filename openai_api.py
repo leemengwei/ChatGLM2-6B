@@ -113,10 +113,10 @@ async def create_chat_completion(request: ChatCompletionRequest):
                 history.append([prev_messages[i].content, prev_messages[i+1].content])
 
     if request.stream:
-        generate = predict(query, history, request.model)
+        generate = predict(request, query, history, request.model)
         return EventSourceResponse(generate, media_type="text/event-stream")
 
-    response, _ = model.chat(tokenizer, query, history=history)
+    response, _ = model.chat(tokenizer, query, max_length=request.max_length, temperature=request.temperature, history=history)
     choice_data = ChatCompletionResponseChoice(
         index=0,
         message=ChatMessage(role="assistant", content=response),
@@ -126,7 +126,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
     return ChatCompletionResponse(model=request.model, choices=[choice_data], object="chat.completion")
 
 
-async def predict(query: str, history: List[List[str]], model_id: str):
+async def predict(request, query: str, history: List[List[str]], model_id: str):
     global model, tokenizer
 
     choice_data = ChatCompletionResponseStreamChoice(
@@ -139,7 +139,7 @@ async def predict(query: str, history: List[List[str]], model_id: str):
 
     current_length = 0
 
-    for new_response, _ in model.stream_chat(tokenizer, query, history):
+    for new_response, _ in model.stream_chat(tokenizer, query, history, max_length=request.max_length, temperature=request.temperature):
         if len(new_response) == current_length:
             continue
 

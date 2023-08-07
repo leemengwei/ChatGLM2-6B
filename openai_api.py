@@ -93,7 +93,7 @@ async def list_models():
     model_card = ModelCard(id="gpt-3.5-turbo")
     return ModelList(data=[model_card])
 
-epsilon=1e-9
+epsilon=1e-3
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
 async def create_chat_completion(request: ChatCompletionRequest):
     global model, tokenizer

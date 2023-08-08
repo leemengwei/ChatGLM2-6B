@@ -93,11 +93,17 @@ async def list_models():
     model_card = ModelCard(id="gpt-3.5-turbo")
     return ModelList(data=[model_card])
 
-epsilon=1e-3
+def get_history_length(history):
+    history_len = 0
+    for i in history:
+        for j in i:
+            result = tokenizer(j)
+            history_len += len(result['input_ids'])
+    return history_len
+
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
 async def create_chat_completion(request: ChatCompletionRequest):
     global model, tokenizer
-    request.temperature = min(request.temperature + epsilon, 1)
 
     if request.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="Invalid request")
@@ -113,10 +119,14 @@ async def create_chat_completion(request: ChatCompletionRequest):
             if prev_messages[i].role == "user" and prev_messages[i+1].role == "assistant":
                 history.append([prev_messages[i].content, prev_messages[i+1].content])
     print(history)
+    # 为了统一，解决glm调用中的temperature不允许置零的问题、max_length是整个上下文而不是回答长度的问题；
+    epsilon=1e-3
+    request.temperature = min(request.temperature + epsilon, 1)
+    request.max_length = min(request.max_length+get_history_length(history), 8096)
     if request.stream:
         generate = predict(request, query, history, request.model)
         return EventSourceResponse(generate, media_type="text/event-stream")
-
+    
     response, _ = model.chat(tokenizer, query, max_length=request.max_length, temperature=request.temperature, history=history)
     choice_data = ChatCompletionResponseChoice(
         index=0,

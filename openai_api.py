@@ -185,4 +185,7 @@ if __name__ == "__main__":
     # model = load_model_on_gpus("THUDM/chatglm2-6b", num_gpus=2)
     model.eval()
 
-    uvicorn.run(app, host='0.0.0.0', port=8000, workers=1)
+    import sys
+    sys.path.append('/root/zhuxiaohui/')
+    import configs
+    uvicorn.run(app, host=configs.llm_config.ChatGLM2_ip, port=configs.llm_config.ChatGLM2_port, workers=1)

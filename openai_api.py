@@ -118,7 +118,6 @@ async def create_chat_completion(request: ChatCompletionRequest):
         for i in range(0, len(prev_messages), 2):
             if prev_messages[i].role == "user" and prev_messages[i+1].role == "assistant":
                 history.append([prev_messages[i].content, prev_messages[i+1].content])
-    print(history)
     # 为了统一，解决glm调用中的temperature不允许置零的问题、max_length是整个上下文而不是回答长度的问题；
     epsilon=1e-3
     request.temperature = min(request.temperature + epsilon, 1)
@@ -188,4 +187,4 @@ if __name__ == "__main__":
     import sys
     sys.path.append('/root/zhuxiaohui/')
     import configs
-    uvicorn.run(app, host=configs.llm_config.ChatGLM2_ip, port=configs.llm_config.ChatGLM2_port, workers=1)
+    uvicorn.run(app, host=configs.llm_services_config.ChatGLM2_ip, port=configs.llm_services_config.ChatGLM2_port, workers=1)

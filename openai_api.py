@@ -187,4 +187,4 @@ if __name__ == "__main__":
     import sys
     sys.path.append('/root/zhuxiaohui/')
     import configs
-    uvicorn.run(app, host=configs.config_for_llm_services.ChatGLM2_ip, port=configs.config_for_llm_services.ChatGLM2_port, workers=1)
+    uvicorn.run(app, host=configs.config_for_llm_services.ChatGLM2_ip, port=int(configs.config_for_llm_services.ChatGLM2_port), workers=1)

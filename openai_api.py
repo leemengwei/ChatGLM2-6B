@@ -12,9 +12,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Literal, Optional, Union
-from transformers import AutoTokenizer, AutoModel
 from sse_starlette.sse import ServerSentEvent, EventSourceResponse
-
+import sys
+sys.path.append('/root/zhuxiaohui/llm_services')
+import instance_chatglm2
+sys.path.append('/root/zhuxiaohui/')
+import configs
 
 @asynccontextmanager
 async def lifespan(app: FastAPI): # collects GPU memory
@@ -97,13 +100,12 @@ def get_history_length(history):
     history_len = 0
     for i in history:
         for j in i:
-            result = tokenizer(j)
+            result = instance_chatglm2.instance.tokenizer(j)
             history_len += len(result['input_ids'])
     return history_len
 
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
 async def create_chat_completion(request: ChatCompletionRequest):
-    global model, tokenizer
 
     if request.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="Invalid request")
@@ -126,7 +128,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
         generate = predict(request, query, history, request.model)
         return EventSourceResponse(generate, media_type="text/event-stream")
     
-    response, _ = model.chat(tokenizer, query, max_length=request.max_length, temperature=request.temperature, history=history)
+    response, _ = instance_chatglm2.instance.model.chat(instance_chatglm2.instance.tokenizer, query, max_length=request.max_length, temperature=request.temperature, history=history)
     choice_data = ChatCompletionResponseChoice(
         index=0,
         message=ChatMessage(role="assistant", content=response),
@@ -137,8 +139,6 @@ async def create_chat_completion(request: ChatCompletionRequest):
 
 
 async def predict(request, query: str, history: List[List[str]], model_id: str):
-    global model, tokenizer
-
     choice_data = ChatCompletionResponseStreamChoice(
         index=0,
         delta=DeltaMessage(role="assistant"),
@@ -149,7 +149,7 @@ async def predict(request, query: str, history: List[List[str]], model_id: str):
 
     current_length = 0
 
-    for new_response, _ in model.stream_chat(tokenizer, query, history, max_length=request.max_length, temperature=request.temperature):
+    for new_response, _ in instance_chatglm2.instance.model.stream_chat(instance_chatglm2.instance.tokenizer, query, history, max_length=request.max_length, temperature=request.temperature):
         if len(new_response) == current_length:
             continue
 
@@ -177,14 +177,5 @@ async def predict(request, query: str, history: List[List[str]], model_id: str):
 
 
 if __name__ == "__main__":
-    tokenizer = AutoTokenizer.from_pretrained("THUDM/chatglm2-6b", trust_remote_code=True)
-    model = AutoModel.from_pretrained("THUDM/chatglm2-6b", trust_remote_code=True).cuda()
-    # 多显卡支持，使用下面两行代替上面一行，将num_gpus改为你实际的显卡数量
-    # from utils import load_model_on_gpus
-    # model = load_model_on_gpus("THUDM/chatglm2-6b", num_gpus=2)
-    model.eval()
-
-    import sys
-    sys.path.append('/root/zhuxiaohui/')
-    import configs
-    uvicorn.run(app, host=configs.config_for_llm_services.ChatGLM2_ip, port=int(configs.config_for_llm_services.ChatGLM2_port), workers=1)
+    print("Chatglm2 server initiated. %s"%"%s:app"%sys.argv[0].split('/')[-1].strip('.py'))
+    uvicorn.run("%s:app"%sys.argv[0].split('/')[-1].strip('.py'), host=configs.config_for_llm_services.ChatGLM2_ip, port=int(configs.config_for_llm_services.ChatGLM2_port), workers=1)     # TODO  外部没使用-m torch.distributed.run --nproc_per_node 1，开出进程来 尝试加载非常多个，这是错的再改吧

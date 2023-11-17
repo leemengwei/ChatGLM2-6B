@@ -178,4 +178,4 @@ async def predict(request, query: str, history: List[List[str]], model_id: str):
 
 if __name__ == "__main__":
     print("Chatglm2 server initiated. %s"%"%s:app"%sys.argv[0].split('/')[-1].strip('.py'))
-    uvicorn.run("%s:app"%sys.argv[0].split('/')[-1].strip('.py'), host=configs.config_for_llm_services.ChatGLM2_ip, port=int(configs.config_for_llm_services.ChatGLM2_port), workers=1)     # TODO  外部没使用-m torch.distributed.run --nproc_per_node 1，开出进程来 尝试加载非常多个，这是错的再改吧
+    uvicorn.run("%s:app"%sys.argv[0].split('/')[-1].strip('.py'), host=configs.config_for_llm_services.ChatGLM2_ip, port=int(configs.config_for_llm_services.ChatGLM2_port), workers=1)     # TO Wait  外部没使用-m torch.distributed.run --nproc_per_node 1，开出进程来 尝试加载非常多个，这是错的再改吧
